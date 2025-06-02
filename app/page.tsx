@@ -18,6 +18,21 @@ export default function Page() {
   const [inputValue, setInputValue] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [promptMode, setPromptMode] = useState(false);
+  const [editablePrompt, setEditablePrompt] = useState('');
+
+  const buildPrompt = (data) => {
+    return `You are an AI greeting card designer. Based on the following structured input, generate a detailed visual prompt for an AI-generated greeting card image. Then create the image. The result should be a beautifully composed card front design based on the tone, style, and occasion described.
+
+Occasion: ${data.Occasion}
+Relationship to recipient: ${data.Relationship}
+Vibe or tone: ${data.Tone}
+Imagery suggestions: ${data.Imagery}
+Color palette/style: ${data.ColorPalette}
+Front text: ${data.FrontText}
+Inside message: ${data.InsideText}
+Extra notes: ${data.OtherNotes}`;
+  };
 
   const handleNext = async () => {
     const key = questions[step].key;
@@ -26,16 +41,9 @@ export default function Page() {
     setInputValue('');
 
     if (/create my card/i.test(inputValue) || step === questions.length - 1) {
-      const finalInputs = { ...updated };
-      setLoading(true);
-      const response = await fetch('/api/generate-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalInputs),
-      });
-      const data = await response.json();
-      setImageUrl(data.imageUrl);
-      setLoading(false);
+      const promptText = buildPrompt(updated);
+      setEditablePrompt(promptText);
+      setPromptMode(true);
     } else {
       setStep((prev) => prev + 1);
     }
@@ -54,6 +62,21 @@ export default function Page() {
     setInputs({});
     setInputValue('');
     setImageUrl('');
+    setEditablePrompt('');
+    setPromptMode(false);
+    setLoading(false);
+  };
+
+  const handleGenerate = async () => {
+    setPromptMode(false);
+    setLoading(true);
+    const response = await fetch('/api/generate-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inputs),
+    });
+    const data = await response.json();
+    setImageUrl(data.imageUrl);
     setLoading(false);
   };
 
@@ -61,7 +84,32 @@ export default function Page() {
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-4">
-      {!imageUrl && (
+      {promptMode && (
+        <>
+          <h2 className="text-lg font-semibold mb-2">📝 Review & Edit Prompt</h2>
+          <textarea
+            className="w-full border p-3 h-64 mb-4"
+            value={editablePrompt}
+            onChange={(e) => setEditablePrompt(e.target.value)}
+          />
+          <div className="flex gap-3">
+            <button
+              onClick={handleGenerate}
+              className="bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Generate Card
+            </button>
+            <button
+              onClick={() => setPromptMode(false)}
+              className="bg-gray-300 text-black px-4 py-2 rounded"
+            >
+              Go Back
+            </button>
+          </div>
+        </>
+      )}
+
+      {!imageUrl && !promptMode && (
         <>
           <div className="text-lg font-semibold mb-2">🎉 AI Greeting Card Designer</div>
           <div className="text-sm text-gray-600 mb-1">Step {step + 1} of {questions.length}</div>
@@ -74,7 +122,6 @@ export default function Page() {
             )}
           </div>
 
-          {/* Conversation History */}
           <div className="bg-gray-100 p-3 rounded mb-4 text-sm">
             <h3 className="font-medium mb-2">Your Answers:</h3>
             <ul className="list-disc list-inside space-y-1">
