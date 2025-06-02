@@ -22,7 +22,7 @@ export default function Page() {
   const [editablePrompt, setEditablePrompt] = useState('');
 
   const buildPrompt = (data) => {
-    return `You are an AI greeting card designer. Based on the following structured input, generate a detailed visual prompt for an AI-generated greeting card image. Then create the image. The result should be a beautifully composed card front design based on the tone, style, and occasion described.
+    return `You are a greeting card designer. Generate a greeting card image. The front of the card and the interior page should both be visible. Use the following design info and respond with the direct image link. 
 
 Occasion: ${data.Occasion}
 Relationship to recipient: ${data.Relationship}
