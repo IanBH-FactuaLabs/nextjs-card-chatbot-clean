@@ -41,7 +41,9 @@ Extra notes: ${data.OtherNotes}`;
     setInputValue('');
 
     if (/create my card/i.test(inputValue) || step === questions.length - 1) {
-      const promptText = buildPrompt(updated);
+      const finalInputs = { ...updated };
+      setInputs(finalInputs);
+      const promptText = buildPrompt(finalInputs);
       setEditablePrompt(promptText);
       setPromptMode(true);
     } else {
@@ -73,7 +75,7 @@ Extra notes: ${data.OtherNotes}`;
     const response = await fetch('/api/generate-card', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inputs),
+      body: JSON.stringify({ prompt: editablePrompt }),
     });
     const data = await response.json();
     setImageUrl(data.imageUrl);
