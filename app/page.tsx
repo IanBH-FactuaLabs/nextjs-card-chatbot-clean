@@ -26,11 +26,12 @@ export default function Page() {
     setInputValue('');
 
     if (/create my card/i.test(inputValue) || step === questions.length - 1) {
+      const finalInputs = { ...updated };
       setLoading(true);
       const response = await fetch('/api/generate-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
+        body: JSON.stringify(finalInputs),
       });
       const data = await response.json();
       setImageUrl(data.imageUrl);
@@ -40,16 +41,53 @@ export default function Page() {
     }
   };
 
+  const handleBack = () => {
+    if (step > 0) {
+      setStep(step - 1);
+      const prevKey = questions[step - 1].key;
+      setInputValue(inputs[prevKey] || '');
+    }
+  };
+
+  const handleRestart = () => {
+    setStep(0);
+    setInputs({});
+    setInputValue('');
+    setImageUrl('');
+    setLoading(false);
+  };
+
+  const currentQuestion = questions[step];
+
   return (
     <div className="max-w-xl mx-auto mt-10 p-4">
       {!imageUrl && (
         <>
           <div className="text-lg font-semibold mb-2">🎉 AI Greeting Card Designer</div>
-          <p className="mb-4">
-            {step === 0
-              ? 'Hi! I’ll help you create a custom greeting card. Just type something to get started!'
-              : questions[step].prompt}
-          </p>
+          <div className="text-sm text-gray-600 mb-1">Step {step + 1} of {questions.length}</div>
+
+          <div className="mb-4">
+            {step === 0 ? (
+              <p>Hi! I’ll help you create a custom greeting card. Just type something to get started!</p>
+            ) : (
+              <p>{currentQuestion.prompt}</p>
+            )}
+          </div>
+
+          {/* Conversation History */}
+          <div className="bg-gray-100 p-3 rounded mb-4 text-sm">
+            <h3 className="font-medium mb-2">Your Answers:</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {questions.map((q, i) =>
+                i < step && inputs[q.key] ? (
+                  <li key={q.key}>
+                    <strong>{q.prompt}</strong> — {inputs[q.key]}
+                  </li>
+                ) : null
+              )}
+            </ul>
+          </div>
+
           <input
             className="border p-2 w-full mb-3"
             placeholder="Type your answer..."
@@ -57,16 +95,46 @@ export default function Page() {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleNext()}
           />
-          <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={handleNext} disabled={loading}>
-            Next
-          </button>
+
+          <div className="flex gap-3">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+              onClick={handleNext}
+              disabled={loading}
+            >
+              Next
+            </button>
+            <button
+              className="bg-gray-300 text-black px-4 py-2 rounded"
+              onClick={handleBack}
+              disabled={step === 0}
+            >
+              Back
+            </button>
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded"
+              onClick={handleRestart}
+            >
+              Restart
+            </button>
+          </div>
         </>
       )}
-      {loading && <p className="mt-4">🖌️ Generating your card...</p>}
+
+      {loading && <p className="mt-4 animate-pulse text-gray-500">🖌️ Generating your card...</p>}
+
       {imageUrl && (
         <div className="mt-4 text-center">
           <h2 className="font-bold text-xl mb-2">🎉 Here's your custom card!</h2>
           <img src={imageUrl} alt="Generated Greeting Card" className="rounded-lg shadow-lg max-w-full" />
+          <div className="mt-4">
+            <button
+              onClick={handleRestart}
+              className="bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Create Another
+            </button>
+          </div>
         </div>
       )}
     </div>
