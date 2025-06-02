@@ -1,29 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  const {
-    Occasion,
-    Relationship,
-    Tone,
-    Imagery,
-    ColorPalette,
-    FrontText,
-    InsideText,
-    OtherNotes,
-  } = req.body;
+  const { prompt } = req.body;
 
-  const prompt = `You are an AI greeting card designer. Based on the following structured input, generate a detailed visual prompt for an AI-generated greeting card image. Then create the image. The result should be a beautifully composed card front design based on the tone, style, and occasion described.
-
-Occasion: ${Occasion}
-Relationship to recipient: ${Relationship}
-Vibe or tone: ${Tone}
-Imagery suggestions: ${Imagery}
-Color palette/style: ${ColorPalette}
-Front text: ${FrontText}
-Inside message: ${InsideText}
-Extra notes: ${OtherNotes}`;
+  if (!prompt) {
+    return res.status(400).json({ error: 'Missing prompt in request body' });
+  }
 
   try {
     const openaiRes = await fetch('https://api.openai.com/v1/images/generations', {
@@ -34,20 +20,23 @@ Extra notes: ${OtherNotes}`;
       },
       body: JSON.stringify({
         model: 'dall-e-3',
-        prompt,
+        prompt: prompt,
         size: '1024x1024',
         n: 1,
       }),
     });
 
     const json = await openaiRes.json();
-    const imageUrl = json.data?.[0]?.url;
 
-    if (!imageUrl) return res.status(500).json({ error: 'Image generation failed.' });
+    const imageUrl = json?.data?.[0]?.url;
+    if (!imageUrl) {
+      console.error('No image URL returned by OpenAI:', json);
+      return res.status(500).json({ error: 'Image generation failed.' });
+    }
 
-    res.status(200).json({ imageUrl });
+    return res.status(200).json({ imageUrl });
   } catch (error) {
     console.error('Image generation error:', error);
-    res.status(500).json({ error: 'Unexpected error.' });
+    return res.status(500).json({ error: 'Unexpected error during image generation.' });
   }
 }
